@@ -1,0 +1,71 @@
+name: Build Araz Scanner Android V1
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Extract project
+        run: |
+          rm -rf ArazScannerAndroidV1
+          unzip -q ArazScannerAndroidV1.zip
+          test -f ArazScannerAndroidV1/settings.gradle
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android 36 SDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - name: Build APK
+        working-directory: ArazScannerAndroidV1
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle :app:assembleDebug --stacktrace 2>&1 | tee build.log
+
+      - name: Verify APK
+        run: |
+          APK="ArazScannerAndroidV1/app/build/outputs/apk/debug/app-debug.apk"
+          test -f "$APK"
+          ls -lh "$APK"
+          sha256sum "$APK" | tee ArazScannerAndroidV1/app-debug.sha256
+
+      - name: Upload APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArazScanner-APK-V1
+          path: |
+            ArazScannerAndroidV1/app/build/outputs/apk/debug/app-debug.apk
+            ArazScannerAndroidV1/app-debug.sha256
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArazScanner-V1-build-log
+          path: ArazScannerAndroidV1/build.log
+          if-no-files-found: warn
+          retention-days: 7
