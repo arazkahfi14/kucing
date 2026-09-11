@@ -14,7 +14,7 @@ jobs:
       - name: Extract project
         run: |
           rm -rf ArazScannerAndroidV1
-          unzip -q ArazScannerAndroidV1-fixed.zip
+          unzip -q ArazScannerAndroidV1.zip
           test -f ArazScannerAndroidV1/settings.gradle
 
       - name: Setup Java 17
